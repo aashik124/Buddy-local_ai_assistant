@@ -11,6 +11,9 @@ const voiceStyle = document.getElementById("voiceStyle");
 const testVoiceBtn = document.getElementById("testVoiceBtn");
 const imageInput = document.getElementById("imageInput");
 const askImageBtn = document.getElementById("askImageBtn");
+const documentInput = document.getElementById("documentInput");
+const uploadDocBtn = document.getElementById("uploadDocBtn");
+const forceSearchToggle = document.getElementById("forceSearchToggle");
 const statusDot = document.getElementById("statusDot");
 const statusText = document.getElementById("statusText");
 const avatar = document.querySelector(".avatar");
@@ -183,6 +186,7 @@ async function sendMessage(text) {
         message: text,
         session_id: sessionId,
         model: modelInput.value || "qwen3:8b",
+        force_search: forceSearchToggle.checked,
       }),
     });
 
@@ -367,8 +371,45 @@ askImageBtn.addEventListener("click", async () => {
   }
 });
 
+/*
+  ============================================================
+  DOCUMENT UPLOAD (RAG) — previously backend-only. Sends the chosen file to
+  /api/upload-document, which saves it into data/documents/ and immediately
+  indexes it into Qdrant (see backend/main.py + backend/rag/retriever.py).
+  No more manually dropping files into a folder and calling the ingest
+  endpoint by hand.
+  ============================================================
+*/
+uploadDocBtn.addEventListener("click", async () => {
+  const file = documentInput.files[0];
+  if (!file) {
+    setStatus("Choose a document first", "error");
+    return;
+  }
+
+  setStatus("Indexing document", "busy");
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    const response = await fetch("/api/upload-document", { method: "POST", body: formData });
+    const data = await response.json();
+    if (response.ok) {
+      addMessage(`Indexed "${data.filename}" into RAG (${data.chunks} chunk${data.chunks === 1 ? "" : "s"}). Ask about it any time.`, "system");
+      setStatus("Ready");
+    } else {
+      addMessage(`Document upload failed: ${data.error || "unknown error"}`, "system");
+      setStatus("Upload error", "error");
+    }
+  } catch (error) {
+    addMessage(`Document upload failed: ${error.message}`, "system");
+    setStatus("Upload error", "error");
+  }
+});
+
 addMessage(
   "Buddy is ready. Start Ollama for the full local AI brain, or ask time/weather/name questions now. " +
-  "Try 'search for ...' for live web results, upload an image for vision, or use either mic button for voice input.",
+  "Try 'search for ...' (or check 'Force web search') for live web results, upload a document to index it for Q&A, " +
+  "upload an image for vision, or use either mic button for voice input.",
   "system"
 );

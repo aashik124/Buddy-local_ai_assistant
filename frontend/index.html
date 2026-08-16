@@ -48,6 +48,17 @@
         <input id="imageInput" type="file" accept="image/*">
       </label>
       <button id="askImageBtn" type="button">Ask about image</button>
+
+      <label>
+        Document / RAG
+        <input id="documentInput" type="file" accept=".pdf,.docx,.txt,.md,.csv,.json,.py,.js,.html,.css">
+      </label>
+      <button id="uploadDocBtn" type="button">Upload &amp; index document</button>
+
+      <label class="switch">
+        <input type="checkbox" id="forceSearchToggle">
+        Force web search
+      </label>
     </aside>
 
     <section class="chat">
@@ -63,7 +74,7 @@
       <div id="messages" class="messages" aria-live="polite"></div>
 
       <form id="chatForm" class="composer">
-        <input id="messageInput" autocomplete="off" placeholder="Message Buddy... (try 'search for ...' or 'weather in ...')">
+        <input id="messageInput" autocomplete="off" placeholder="Message Buddy... (try 'search for ...', 'weather in ...', or check 'Force web search')">
         <button type="submit">Send</button>
       </form>
     </section>

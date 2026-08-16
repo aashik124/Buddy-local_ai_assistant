@@ -8,13 +8,14 @@ from fastapi.responses import FileResponse, JSONResponse, Response, StreamingRes
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from backend.config import BASE_DIR, DEFAULT_MODEL
+from backend.config import BASE_DIR, DEFAULT_MODEL, DOCUMENT_DIR
 from backend.llm.ollama import complete_chat
 from backend.llm.prompts import system_prompt
 from backend.memory.conversation import clear_history, load_history, save_history
 from backend.memory.long_term import forget_profile, load_profile, remember_fact, save_profile
 from backend.memory.vector_memory import save_memory, search_memory
-from backend.rag.retriever import ingest_documents, retrieve
+from backend.rag.loader import SUPPORTED_EXTENSIONS
+from backend.rag.retriever import ingest_document, ingest_documents, retrieve
 from backend.tools.system import get_time
 from backend.tools.vision import describe_image
 from backend.tools.weather import get_weather
@@ -39,6 +40,7 @@ class ChatRequest(BaseModel):
     message: str
     session_id: str = "default"
     model: str = DEFAULT_MODEL
+    force_search: bool = False
 
 
 class ClearRequest(BaseModel):
@@ -131,6 +133,29 @@ def ingest_docs():
     return {"ok": True, "documents": ingest_documents()}
 
 
+@app.post("/api/upload-document")
+async def upload_document(file: UploadFile = File(...)):
+    """Accepts a document upload from the frontend (PDF/DOCX/TXT/MD/CSV/JSON/code files),
+    saves it into data/documents/, and immediately indexes it into Qdrant for RAG —
+    this is the missing piece that made document upload backend-only before."""
+    filename = file.filename or "upload"
+    suffix = Path(filename).suffix.lower()
+    if suffix not in SUPPORTED_EXTENSIONS:
+        return JSONResponse(status_code=400, content={
+            "error": f"Unsupported file type '{suffix}'. Supported: {sorted(SUPPORTED_EXTENSIONS)}"
+        })
+
+    dest = DOCUMENT_DIR / filename
+    dest.write_bytes(await file.read())
+
+    try:
+        chunk_count = ingest_document(dest)
+    except Exception as exc:
+        return JSONResponse(status_code=503, content={"error": f"Ingestion failed: {exc}"})
+
+    return {"ok": True, "filename": filename, "chunks": chunk_count}
+
+
 def update_profile_from_text(text: str) -> None:
     profile = load_profile()
     name_match = re.search(r"\bmy name is\s+([a-zA-Z][a-zA-Z .'-]{1,40})", text)
@@ -170,18 +195,25 @@ async def local_tool_answer(message: str) -> str | None:
 WEB_SEARCH_TRIGGER = re.compile(r"\b(search|look up|google|find (?:info|information)) (?:for |about )?(.+)", re.I)
 
 
-async def maybe_web_context(message: str) -> str | None:
-    """If the message looks like a search request, runs a real web search and
-    returns formatted context to append to the LLM prompt (RAG-style, but for
-    live web results instead of local documents)."""
-    match = WEB_SEARCH_TRIGGER.search(message)
-    if not match:
-        return None
-    query = match.group(2).strip()
+async def maybe_web_context(message: str, force: bool = False) -> tuple[str, str] | None:
+    """If the message looks like a search request (or `force` is set, e.g. from
+    the "Force web search" toggle in the UI), runs a real web search and returns
+    (query, formatted_context) to append to the LLM prompt. Returns None if no
+    search should run — this is also how the frontend gets visible confirmation
+    that a search actually happened, via the "🔍 Searched the web" tag added
+    to the reply in the /api/chat handler below."""
+    if force:
+        query = message.strip()
+    else:
+        match = WEB_SEARCH_TRIGGER.search(message)
+        if not match:
+            return None
+        query = match.group(2).strip()
+
     if not query:
         return None
     results = await web_search(query)
-    return format_results_for_prompt(results)
+    return query, format_results_for_prompt(results)
 
 
 @app.post("/api/chat")
@@ -196,7 +228,7 @@ async def chat(request: ChatRequest):
         profile = load_profile()
         memories = search_memory(message)
         document_chunks = retrieve(message)
-        web_context = await maybe_web_context(message)
+        search_result = await maybe_web_context(message, force=request.force_search)
 
         tool_answer = await local_tool_answer(message)
         if tool_answer:
@@ -209,8 +241,13 @@ async def chat(request: ChatRequest):
             return
 
         extra_context = [*memories, *document_chunks]
-        if web_context:
+        search_tag = ""
+        if search_result:
+            search_query, web_context = search_result
             extra_context.append(f"Live web search results:\n{web_context}")
+            # Visible confirmation that a search actually ran — this is what makes
+            # web search non-invisible in the UI, since it's otherwise silent.
+            search_tag = f"\U0001F50D Searched the web for \u201c{search_query}\u201d\n\n"
 
         messages = [
             {"role": "system", "content": system_prompt(profile, extra_context)},
@@ -228,6 +265,8 @@ async def chat(request: ChatRequest):
                 "Start Ollama and run `ollama pull qwen3:8b`, then try again. "
                 f"Details: {exc}"
             )
+
+        full = search_tag + full
 
         history.extend([
             {"role": "user", "content": message},
