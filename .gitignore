@@ -1,0 +1,51 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+
+# Local Buddy data
+data/conversations/*
+!data/conversations/.gitkeep
+
+data/memory/*
+!data/memory/.gitkeep
+
+data/documents/*
+!data/documents/.gitkeep
+
+# Qdrant local database
+data/qdrant/
+
+# Piper voice model files
+data/voices/*.onnx
+data/voices/*.onnx.json
+
+# Generated audio
+*.wav
+*.mp3
+*.ogg
+
+# Model caches
+.cache/
+huggingface/
+models/
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db

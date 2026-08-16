@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Buddy Local AI</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="avatar">B</div>
+        <div>
+          <h1>Buddy</h1>
+          <p>Local AI assistant</p>
+        </div>
+      </div>
+      <button id="newChatBtn" type="button">New chat</button>
+      <button id="forgetBtn" type="button">Forget memory</button>
+      <div class="status">
+        <span id="statusDot"></span>
+        <span id="statusText">Ready</span>
+      </div>
+      <label>
+        Model
+        <input id="modelInput" value="qwen3:8b">
+      </label>
+      <label class="switch">
+        <input type="checkbox" id="voiceToggle" checked>
+        Speak replies
+      </label>
+      <label>
+        Voice
+        <select id="voiceStyle">
+          <option value="cartoon" selected>Cartoon</option>
+          <option value="hyper_squeaky">Hyper Squeaky</option>
+          <option value="neutral_male">Neutral Male</option>
+          <option value="soft_female">Soft Female</option>
+          <option value="deep_narrator">Deep Narrator</option>
+          <option value="monster">Monster</option>
+          <option value="robot">Robot</option>
+        </select>
+      </label>
+      <button id="testVoiceBtn" type="button">Test voice</button>
+      <label>
+        Image / vision
+        <input id="imageInput" type="file" accept="image/*">
+      </label>
+      <button id="askImageBtn" type="button">Ask about image</button>
+    </aside>
+
+    <section class="chat">
+      <header>
+        <div>
+          <h2>Conversation</h2>
+          <p>Ask with text or voice. Backend handles Ollama, tools, memory, RAG, web search, and vision.</p>
+        </div>
+        <button id="listenBtn" type="button">Start listening</button>
+        <button id="recordBtn" type="button">Record (backend STT)</button>
+      </header>
+
+      <div id="messages" class="messages" aria-live="polite"></div>
+
+      <form id="chatForm" class="composer">
+        <input id="messageInput" autocomplete="off" placeholder="Message Buddy... (try 'search for ...' or 'weather in ...')">
+        <button type="submit">Send</button>
+      </form>
+    </section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>
