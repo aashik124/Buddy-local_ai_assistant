@@ -159,7 +159,7 @@ async def local_tool_answer(message: str) -> str | None:
     if "what is my name" in lower or "who am i" in lower:
         profile = load_profile()
         return (
-            f"Bello! Your name is {profile['name']}. I kept it in my tiny memory pocket."
+            f"Hello! Your name is {profile['name']}. I kept it in my tiny memory pocket."
             if profile.get("name")
             else "Oopsie, I do not know your name yet. Tell me, and I will keep it in banana memory."
         )
