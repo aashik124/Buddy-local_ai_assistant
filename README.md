@@ -228,4 +228,4 @@ local-ai-assistant/
 
 **Aashik Poudel**
 
-Bachelor of Engineering in Information Technology
+IT Engineer (Bachelor of Engineering in Information Technology)
