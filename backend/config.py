@@ -1,8 +1,18 @@
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parents[1]
+import os
+
+from pathlib import Path
+
+BASE_DIR = Path("/tmp")
+
 DATA_DIR = BASE_DIR / "data"
+
 MEMORY_DIR = DATA_DIR / "memory"
+
+for directory in [DATA_DIR, MEMORY_DIR]:
+    directory.mkdir(parents=True, exist_ok=True)
+
 CONVERSATION_DIR = DATA_DIR / "conversations"
 DOCUMENT_DIR = DATA_DIR / "documents"
 
@@ -14,5 +24,4 @@ VECTOR_SIZE = 384
 MEMORY_COLLECTION = "buddy_memory"
 DOCUMENT_COLLECTION = "buddy_documents"
 
-for directory in (MEMORY_DIR, CONVERSATION_DIR, DOCUMENT_DIR):
-    directory.mkdir(parents=True, exist_ok=True)
+
