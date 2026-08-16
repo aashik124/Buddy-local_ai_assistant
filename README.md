@@ -172,9 +172,35 @@ Because these services depend on the local computer, the laptop must remain powe
 
 ## Online Deployment
 
-The frontend can be hosted on platforms such as Vercel, but deploying the frontend alone does not move the AI models to the cloud.
+The project includes a Vercel entrypoint at:
 
-To run Buddy while the local computer is turned off, the backend and AI services would need to be hosted on a cloud server or cloud GPU, or replaced with cloud-based AI APIs.
+```text
+api/index.py
+```
+
+and Vercel config at:
+
+```text
+vercel.json
+```
+
+This can deploy the FastAPI shell, static frontend, and lightweight endpoints.
+However, the **full local AI stack is not automatically available on Vercel**.
+
+The local version depends on:
+
+* Ollama running at `127.0.0.1:11434`
+* Qdrant running at `127.0.0.1:6333`
+* Piper `.onnx` voice files in `data/voices/`
+* faster-whisper model downloads/cache
+
+On Vercel, `127.0.0.1` means the Vercel function itself, not your laptop.
+So the deployed app will need hosted replacements:
+
+* Hosted LLM API instead of local Ollama, or a reachable cloud Ollama server
+* Hosted Qdrant or another vector database
+* Cloud TTS/STT, or a container/function setup large enough for local models
+* External file/object storage for persistent data
 
 A possible future architecture is:
 
@@ -183,12 +209,14 @@ User
  ↓
 Vercel Frontend
  ↓
-Cloud Backend
+Vercel / Cloud Backend
  ↓
-Cloud LLM / STT / TTS / Database
+Hosted LLM / STT / TTS / Vector DB
 ```
 
-The current version therefore focuses on local AI development, while cloud deployment is planned as a future extension.
+So: **yes, it is possible to launch a version on Vercel**, but the current
+full-featured local version is best run on your PC or on a VPS/GPU server.
+For production Vercel, convert the local dependencies to hosted services first.
 
 ## Project Structure
 
